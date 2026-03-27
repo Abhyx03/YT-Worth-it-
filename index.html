@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Worth It?</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    #app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+    }
+    header h1 span { color: #6366f1; }
+    .subtitle {
+      margin-top: 0.5rem;
+      color: #64748b;
+      font-size: 1rem;
+    }
+
+    /* ── Form ── */
+    #form-section {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.75rem;
+      max-width: 680px;
+      margin: 0 auto 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+      margin-bottom: 0.4rem;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: #1e293b;
+      background: #f8fafc;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    textarea:focus, input[type="text"]:focus {
+      border-color: #6366f1;
+      background: #fff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .field { margin-bottom: 1.1rem; }
+
+    #url-2-row { margin-top: 0.6rem; }
+
+    #add-url-btn {
+      background: none;
+      border: 1px dashed #94a3b8;
+      border-radius: 8px;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.88rem;
+      padding: 0.5rem 1rem;
+      width: 100%;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #add-url-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+    #analyse-btn {
+      width: 100%;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    #analyse-btn:hover { background: #4f46e5; }
+    #analyse-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Loading ── */
+    #loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem;
+      color: #64748b;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error banner ── */
+    #error-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      color: #991b1b;
+      max-width: 680px;
+      margin: 0 auto 1.5rem;
+      font-size: 0.92rem;
+    }
+
+    /* ── Results grid ── */
+    #results-section { display: none; }
+
+    #results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── Result card ── */
+    .result-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    /* Score ring */
+    .score-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .score-ring-container {
+      position: relative;
+      width: 80px; height: 80px;
+      flex-shrink: 0;
+    }
+    .score-ring-container svg {
+      transform: rotate(-90deg);
+    }
+    .score-ring-container .track { stroke: #e2e8f0; }
+    .score-ring-container .fill  { stroke: #6366f1; transition: stroke-dashoffset 0.6s ease; }
+    .score-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .score-value { font-size: 1.4rem; font-weight: 800; color: #0f172a; }
+    .score-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+    .score-meta { flex: 1; }
+    .score-meta .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+    }
+    .score-meta .video-link:hover { text-decoration: underline; }
+    .score-meta .relevance-label {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    /* Card sections */
+    .card-section { margin-bottom: 1.1rem; }
+    .card-section:last-child { margin-bottom: 0; }
+    .card-section h3 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-bottom: 0.45rem;
+    }
+    .card-section p { font-size: 0.9rem; color: #334155; line-height: 1.55; }
+
+    /* Clickbait badge */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .badge-accurate   { background: #dcfce7; color: #166534; }
+    .badge-misleading { background: #fef9c3; color: #854d0e; }
+    .badge-clickbait  { background: #fee2e2; color: #991b1b; }
+
+    /* Timestamp / chapter links */
+    .ts-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.28rem 0.7rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.8rem;
+      color: #1d4ed8;
+      text-decoration: none;
+      transition: background 0.12s;
+    }
+    .ts-link:hover { background: #dbeafe; }
+
+    .chapter-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .chapter-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      color: #475569;
+    }
+    .chapter-list li .ts-link { flex-shrink: 0; }
+
+    /* Score colour variants */
+    .fill-high   { stroke: #22c55e; }
+    .fill-medium { stroke: #f59e0b; }
+    .fill-low    { stroke: #ef4444; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Worth <span>It?</span></h1>
+    <p class="subtitle">Find out if a YouTube video actually answers your question.</p>
+  </header>
+
+  <section id="form-section">
+    <div class="field">
+      <label for="goal-input">Your learning goal</label>
+      <textarea id="goal-input" placeholder="e.g. 'How do I build a REST API with FastAPI?'"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="url-1">YouTube URL</label>
+      <input id="url-1" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+      <div id="url-2-row">
+        <button id="add-url-btn" type="button">+ Compare with another video</button>
+        <input id="url-2" type="text" placeholder="https://www.youtube.com/watch?v=..." style="display:none; margin-top:0.5rem;" />
+      </div>
+    </div>
+
+    <button id="analyse-btn" type="button">Analyse</button>
+  </section>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Fetching transcript and analysing with AI&hellip;</p>
+  </div>
+
+  <div id="error-banner"><span id="error-text"></span></div>
+
+  <section id="results-section">
+    <div id="results-grid"></div>
+  </section>
+
+</div>
+
+<script>
+  let twoUrlMode = false;
+
+  document.getElementById("add-url-btn").addEventListener("click", () => {
+    twoUrlMode = true;
+    document.getElementById("url-2").style.display = "block";
+    document.getElementById("add-url-btn").style.display = "none";
+  });
+
+  document.getElementById("analyse-btn").addEventListener("click", handleSubmit);
+
+  async function handleSubmit() {
+    const goal = document.getElementById("goal-input").value.trim();
+    const url1 = document.getElementById("url-1").value.trim();
+    const url2 = twoUrlMode ? document.getElementById("url-2").value.trim() : "";
+
+    if (goal.length < 10) return showError("Please describe your goal in at least 10 characters.");
+    if (!url1)            return showError("Please enter at least one YouTube URL.");
+
+    const urls = url2 ? [url1, url2] : [url1];
+
+    setLoading(true);
+    clearError();
+    clearResults();
+
+    try {
+      const response = await fetch("/analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal, urls }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        showError(data.message || "An unexpected error occurred.");
+        return;
+      }
+
+      renderResults(data.results);
+    } catch (err) {
+      showError("Network error — is the server running on port 8000?");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function renderResults(results) {
+    const grid = document.getElementById("results-grid");
+    grid.innerHTML = "";
+    results.forEach(r => grid.appendChild(buildResultCard(r)));
+    document.getElementById("results-section").style.display = "block";
+    document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function buildResultCard(r) {
+    const score = r.relevance_score;
+    const circumference = 251; // 2 * pi * 40 (r=40)
+    const offset = circumference * (1 - score / 10);
+
+    let fillClass = "fill";
+    if (score >= 7)      fillClass += " fill-high";
+    else if (score >= 4) fillClass += " fill-medium";
+    else                 fillClass += " fill-low";
+
+
+    const chaptersHtml = r.chapters.map(ch =>
+      `<li>
+        <a href="${esc(ch.link)}" target="_blank" class="ts-link">${esc(ch.display)}</a>
+        <span>${esc(ch.title)}</span>
+      </li>`
+    ).join("");
+
+    const card = document.createElement("div");
+    card.className = "result-card";
+    card.innerHTML = `
+      <div class="score-wrap">
+        <div class="score-ring-container">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <circle class="track" cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+            <circle class="${fillClass}" cx="50" cy="50" r="40" fill="none" stroke-width="9"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="${offset.toFixed(1)}"
+              stroke-linecap="round"/>
+          </svg>
+          <div class="score-overlay">
+            <span class="score-value">${score}</span>
+            <span class="score-label">/ 10</span>
+          </div>
+        </div>
+        <div class="score-meta">
+          <a href="${esc(r.original_url)}" target="_blank" class="video-link">
+            Open Video ↗
+          </a>
+          <div class="relevance-label">Relevance score</div>
+        </div>
+      </div>
+
+      <div class="card-section">
+        <h3>Summary</h3>
+        <p>${esc(r.summary)}</p>
+      </div>
+
+      <div class="card-section">
+        <h3>Where's the actual answer?</h3>
+        <a href="${esc(r.answer_timestamp.link)}" target="_blank" class="ts-link">
+          &#9654; Jump to ${esc(r.answer_timestamp.display)}
+        </a>
+      </div>
+
+      <div class="card-section">
+        <h3>Chapter Breakdown</h3>
+        <ul class="chapter-list">${chaptersHtml}</ul>
+      </div>
+    `;
+    return card;
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function setLoading(on) {
+    document.getElementById("loading").style.display = on ? "flex" : "none";
+    document.getElementById("analyse-btn").disabled = on;
+  }
+
+  function showError(msg) {
+    document.getElementById("error-text").textContent = msg;
+    document.getElementById("error-banner").style.display = "block";
+  }
+
+  function clearError() {
+    document.getElementById("error-banner").style.display = "none";
+  }
+
+  function clearResults() {
+    document.getElementById("results-section").style.display = "none";
+    document.getElementById("results-grid").innerHTML = "";
+  }
+</script>
+</body>
+</html>

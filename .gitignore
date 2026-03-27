@@ -1,0 +1,5 @@
+Gemini_API.env
+cookies.txt
+__pycache__/
+*.pyc
+.env
