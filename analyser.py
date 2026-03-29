@@ -198,3 +198,90 @@ def analyse_video(video_id: str, goal: str, transcript_entries: list[dict], clie
         )
 
     return data
+
+
+COMPARE_PROMPT_TEMPLATE = """You are a helpful assistant comparing two YouTube videos for a user.
+
+USER GOAL: {goal}
+
+VIDEO A (id: {video_id_a}):
+- Relevance score: {score_a}/10
+- Summary: {summary_a}
+
+VIDEO B (id: {video_id_b}):
+- Relevance score: {score_b}/10
+- Summary: {summary_b}
+
+---
+
+Based on the user's goal, decide which video is the better watch. Respond with ONLY a valid JSON object. Do not add any text outside the JSON.
+
+{{
+  "winner_video_id": "<video_id_a or video_id_b>",
+  "reasoning": "<2-3 sentences explaining why this video is the better choice for the user's goal>"
+}}"""
+
+
+def compare_videos(
+    goal: str,
+    video_id_a: str,
+    analysis_a: dict,
+    video_id_b: str,
+    analysis_b: dict,
+    client: genai.Client,
+) -> dict:
+    """
+    Compares two already-analysed videos and returns {winner_video_id, reasoning}.
+    Raises HTTPException on failure.
+    """
+    prompt = COMPARE_PROMPT_TEMPLATE.format(
+        goal=goal,
+        video_id_a=video_id_a,
+        score_a=analysis_a["relevance_score"],
+        summary_a=analysis_a["summary"],
+        video_id_b=video_id_b,
+        score_b=analysis_b["relevance_score"],
+        summary_b=analysis_b["summary"],
+    )
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2,
+                max_output_tokens=512,
+            ),
+        )
+        raw_json = response.text.strip()
+        if raw_json.startswith("```"):
+            raw_json = raw_json.split("\n", 1)[1]
+            raw_json = raw_json.rsplit("```", 1)[0].strip()
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "GEMINI_API_ERROR",
+                "message": f"Comparison failed: {str(e)}",
+                "video_id": None,
+            },
+        )
+
+    try:
+        data = json.loads(raw_json)
+        if "winner_video_id" not in data or "reasoning" not in data:
+            raise ValueError("Missing keys")
+        if data["winner_video_id"] not in (video_id_a, video_id_b):
+            data["winner_video_id"] = video_id_a if analysis_a["relevance_score"] >= analysis_b["relevance_score"] else video_id_b
+    except (json.JSONDecodeError, ValueError, TypeError):
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "GEMINI_PARSE_ERROR",
+                "message": "Comparison returned an unexpected format. Please try again.",
+                "video_id": None,
+            },
+        )
+
+    return data

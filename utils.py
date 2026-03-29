@@ -1,7 +1,8 @@
 import urllib.parse
+from typing import Optional
 
 
-def extract_video_id(url: str) -> str | None:
+def extract_video_id(url: str) -> Optional[str]:
     """
     Extracts YouTube video ID from common URL formats:
       https://www.youtube.com/watch?v=ID

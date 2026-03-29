@@ -42,14 +42,18 @@ class VideoResult(BaseModel):
     original_url: str
     relevance_score: int
     summary: str
-    clickbait_rating: str
-    clickbait_reasoning: str
     answer_timestamp: TimestampResult
     chapters: list[ChapterResult]
 
 
+class CompareResult(BaseModel):
+    winner_video_id: str
+    reasoning: str
+
+
 class AnalyseResponse(BaseModel):
     results: list[VideoResult]
+    comparison: Optional[CompareResult] = None
 
 
 class ErrorResponse(BaseModel):

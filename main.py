@@ -9,7 +9,7 @@ from google import genai
 
 from models import AnalyseRequest
 from utils import extract_video_id, make_timestamp_result, seconds_to_display, build_timestamp_link
-from analyser import fetch_transcript, analyse_video
+from analyser import fetch_transcript, analyse_video, compare_videos
 
 # Load API key from Gemini_API.env in the same directory as this file
 env_path = Path(__file__).parent / "Gemini_API.env"
@@ -47,6 +47,7 @@ async def health():
 @app.post("/analyse")
 async def analyse(request: AnalyseRequest):
     results = []
+    analyses = {}
 
     for url in request.urls:
         video_id = extract_video_id(url)
@@ -62,6 +63,7 @@ async def analyse(request: AnalyseRequest):
 
         transcript_entries = fetch_transcript(video_id)
         gemini_data = analyse_video(video_id, request.goal, transcript_entries, gemini_client)
+        analyses[video_id] = gemini_data
 
         answer_ts = make_timestamp_result(video_id, gemini_data["answer_timestamp_seconds"])
 
@@ -84,7 +86,17 @@ async def analyse(request: AnalyseRequest):
             "chapters": chapters,
         })
 
-    return {"results": results}
+    comparison = None
+    if len(results) == 2:
+        ids = list(analyses.keys())
+        comparison = compare_videos(
+            request.goal,
+            ids[0], analyses[ids[0]],
+            ids[1], analyses[ids[1]],
+            gemini_client,
+        )
+
+    return {"results": results, "comparison": comparison}
 
 
 @app.exception_handler(HTTPException)
